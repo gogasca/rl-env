@@ -54,7 +54,11 @@ class RewardComposer:
                 for verifier in self.step_verifiers
             )
         )
-        return self.compose(task, results) if results else ScoredReward(0, (), False, {})
+        return (
+            self.compose(task, results, enforce_required=False)
+            if results
+            else ScoredReward(0, (), False, {})
+        )
 
     async def score_final(
         self,
@@ -74,6 +78,8 @@ class RewardComposer:
     def compose(
         task: TaskSpec,
         results: Sequence[VerificationResult],
+        *,
+        enforce_required: bool = True,
     ) -> ScoredReward:
         criteria = {criterion.id: criterion for criterion in task.criteria}
         grouped: dict[str, list[float]] = defaultdict(list)
@@ -107,7 +113,7 @@ class RewardComposer:
             criterion.required and breakdown.get(criterion.id, 0) < 1
             for criterion in task.criteria
         )
-        if required_failed:
+        if enforce_required and required_failed:
             score = 0.0
 
         return ScoredReward(

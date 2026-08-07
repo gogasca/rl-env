@@ -18,6 +18,7 @@ from rl_env import (
     RewardComposer,
     RewardCriterion,
     RewardSignal,
+    StepOutcome,
     TaskSpec,
     Transition,
     VerificationResult,
@@ -113,6 +114,37 @@ class ModelAndRewardTests(unittest.TestCase):
 
 
 class EpisodeIntegrationTests(unittest.IsolatedAsyncioTestCase):
+    async def test_dense_reward_does_not_apply_final_required_gate(self) -> None:
+        task = TaskSpec(
+            id="dense",
+            environment_revision=ENVIRONMENT.revision,
+            prompt="test",
+            criteria=(
+                RewardCriterion("progress", "Intermediate progress", 3),
+                RewardCriterion("safety", "Final safety check", 1, required=True),
+            ),
+        )
+
+        class ProgressVerifier:
+            name = "progress"
+
+            async def evaluate_step(self, task, transition, trajectory):
+                return VerificationResult(
+                    (RewardSignal("progress", 1, "milestone reached", self.name),)
+                )
+
+        composer = RewardComposer(
+            (StaticVerifier(RewardSignal("safety", 1, "safe", "final")),),
+            (ProgressVerifier(),),
+        )
+        transition = Transition(
+            0,
+            Action("work"),
+            outcome=StepOutcome(Observation("worked")),
+        )
+        scored = await composer.score_step(task, transition, (transition,))
+        self.assertEqual(scored.score, 0.75)
+
     async def test_episode_has_dense_rewards_and_verified_trace(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             store = FileTrajectoryStore(directory)
