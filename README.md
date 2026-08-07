@@ -96,6 +96,27 @@ with:
 See `docs/architecture.md` for the deployment design, data flow, quality loop,
 and scaling model.
 
+## Google Cloud deployment
+
+The repository includes a deployable GCP implementation:
+
+- Terraform for a private regional VPC, Artifact Registry, KMS, retained GCS
+  stores, Pub/Sub queues, Firestore, Workload Identity, and regional GKE;
+- distinct trusted and autoscaled gVisor node pools;
+- GCS and Pub/Sub Python adapters;
+- hardened controller, agent episode, and verifier Kubernetes workloads;
+- a Cloud Build and deployment workflow in `scripts/deploy-gcp.sh`.
+
+Start with:
+
+```bash
+cp infra/gcp/terraform.tfvars.example infra/gcp/terraform.tfvars
+./scripts/deploy-gcp.sh plan
+```
+
+Deployment requirements, identity boundaries, smoke-test submission, and
+production hardening are documented in `docs/gcp-deployment.md`.
+
 ## Project layout
 
 ```text
@@ -106,4 +127,6 @@ src/rl_env/runner.py        Episode lifecycle and bounded batch scheduler
 src/rl_env/queue.py         At-least-once lease queue reference
 src/rl_env/store.py         Tamper-evident trajectory event store
 src/rl_env/verifiers.py     State, policy, dense-progress, and command graders
+src/rl_env/gcp.py           Cloud Storage and Pub/Sub production adapters
+infra/gcp/                  Terraform and hardened Kubernetes workload templates
 ```

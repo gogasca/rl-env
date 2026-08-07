@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import replace
 
-from .interfaces import EnvironmentFactory, Policy
+from .interfaces import EnvironmentFactory, Policy, TrajectoryStore
 from .models import (
     EnvironmentSpec,
     EpisodeResult,
@@ -17,7 +17,6 @@ from .models import (
     Transition,
 )
 from .rewards import RewardComposer
-from .store import FileTrajectoryStore
 
 
 class EpisodeRunner:
@@ -25,7 +24,7 @@ class EpisodeRunner:
         self,
         environment_factory: EnvironmentFactory,
         rewards: RewardComposer,
-        store: FileTrajectoryStore,
+        store: TrajectoryStore,
     ) -> None:
         self.environment_factory = environment_factory
         self.rewards = rewards

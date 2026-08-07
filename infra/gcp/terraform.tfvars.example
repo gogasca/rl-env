@@ -1,0 +1,16 @@
+project_id = "my-rl-platform-project"
+region     = "us-central1"
+name       = "rl-env"
+
+# Restrict this to your CI runner or operator network. An empty list denies
+# public control-plane access; use a private runner in the VPC in that mode.
+master_authorized_cidrs = [
+  {
+    cidr_block   = "203.0.113.10/32"
+    display_name = "ci-runner"
+  }
+]
+
+sandbox_max_nodes       = 20
+trajectory_retention_days = 30
+deletion_protection     = true

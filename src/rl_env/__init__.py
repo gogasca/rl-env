@@ -1,6 +1,7 @@
 """Scalable, verifier-first RL environment primitives."""
 
 from .environments import KeyValueEnvironment, LocalProcessEnvironment
+from .gcp import GCSTrajectoryStore, PubSubEventPublisher, PubSubJob, PubSubJobQueue
 from .models import (
     Action,
     EnvironmentSpec,
@@ -29,9 +30,13 @@ __all__ = [
     "EpisodeRunner",
     "EpisodeStatus",
     "FileTrajectoryStore",
+    "GCSTrajectoryStore",
     "KeyValueEnvironment",
     "LocalProcessEnvironment",
     "Observation",
+    "PubSubEventPublisher",
+    "PubSubJob",
+    "PubSubJobQueue",
     "ResourceLimits",
     "RewardComposer",
     "RewardCriterion",
