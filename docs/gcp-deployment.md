@@ -18,12 +18,15 @@ container registry, and isolated worker pools.
 | Trusted controllers/verifiers | GKE Standard trusted node pool |
 | Untrusted agent execution | Separate autoscaled GKE Sandbox/gVisor pool |
 | Workload authentication | Workload Identity Federation for GKE |
-| Network and audit telemetry | VPC Flow/NAT logs, GKE logs, Managed Prometheus |
+| Restricted API resolution | Private Cloud DNS + restricted Google API VIP |
+| Network and audit telemetry | NAT logs, GKE logs, Managed Prometheus |
 
 The GKE cluster is regional. Nodes have private addresses, Private Google
 Access, Shielded VM protections, and controlled NAT. The control-plane public
 endpoint accepts only `master_authorized_cidrs`; use an empty list with a
-private CI runner when possible.
+private CI runner when possible. A private `googleapis.com` DNS zone resolves
+Google APIs to `restricted.googleapis.com`, matching the agent NetworkPolicy's
+`199.36.153.4/30` egress rule.
 
 ## Prerequisites
 

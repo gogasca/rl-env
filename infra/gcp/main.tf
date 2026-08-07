@@ -5,6 +5,7 @@ locals {
     "cloudkms.googleapis.com",
     "compute.googleapis.com",
     "container.googleapis.com",
+    "dns.googleapis.com",
     "firestore.googleapis.com",
     "iamcredentials.googleapis.com",
     "logging.googleapis.com",
@@ -77,6 +78,42 @@ resource "google_compute_router_nat" "platform" {
     enable = true
     filter = "ERRORS_ONLY"
   }
+}
+
+resource "google_dns_managed_zone" "googleapis" {
+  name        = "${var.name}-restricted-googleapis"
+  dns_name    = "googleapis.com."
+  description = "Resolve Google APIs through the restricted Private Google Access VIP"
+  visibility  = "private"
+
+  private_visibility_config {
+    networks {
+      network_url = google_compute_network.platform.id
+    }
+  }
+
+  depends_on = [google_project_service.platform["dns.googleapis.com"]]
+}
+
+resource "google_dns_record_set" "restricted_googleapis" {
+  name         = "restricted.googleapis.com."
+  managed_zone = google_dns_managed_zone.googleapis.name
+  type         = "A"
+  ttl          = 300
+  rrdatas = [
+    "199.36.153.4",
+    "199.36.153.5",
+    "199.36.153.6",
+    "199.36.153.7",
+  ]
+}
+
+resource "google_dns_record_set" "googleapis_wildcard" {
+  name         = "*.googleapis.com."
+  managed_zone = google_dns_managed_zone.googleapis.name
+  type         = "CNAME"
+  ttl          = 300
+  rrdatas      = ["restricted.googleapis.com."]
 }
 
 resource "google_artifact_registry_repository" "images" {
