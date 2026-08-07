@@ -1,0 +1,10 @@
+.git
+.venv
+.runs
+__pycache__
+*.pyc
+.terraform
+*.tfstate*
+tests
+docs
+infra

@@ -12,6 +12,12 @@ license = "Apache-2.0"
 authors = [{ name = "RL Environment Contributors" }]
 keywords = ["reinforcement-learning", "agents", "evaluation", "environments"]
 
+[project.optional-dependencies]
+gcp = [
+  "google-cloud-pubsub>=2.39.1",
+  "google-cloud-storage>=3.13.1",
+]
+
 [project.scripts]
 rl-env = "rl_env.cli:main"
 

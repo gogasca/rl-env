@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Protocol
+from typing import Any, Protocol
 
 from .models import (
     Action,
@@ -57,3 +57,16 @@ class FinalVerifier(Protocol):
         final_observation: Observation,
         trajectory: Sequence[Transition],
     ) -> VerificationResult: ...
+
+
+class TrajectoryRecorder(Protocol):
+    @property
+    def uri(self) -> str: ...
+
+    def append(self, event_type: str, payload: Any) -> str: ...
+
+    def close(self) -> None: ...
+
+
+class TrajectoryStore(Protocol):
+    def open(self, episode_id: str) -> TrajectoryRecorder: ...

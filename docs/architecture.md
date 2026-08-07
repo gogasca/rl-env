@@ -163,7 +163,7 @@ must account for potentially sensitive prompts, files, and expert traces.
 | --- | --- | --- | --- | --- |
 | Developer | `BatchScheduler` | memory | local JSONL | in process |
 | Single host | processes/containers | `SQLiteJobQueue` | local/S3-compatible | separate process |
-| Cluster | Kubernetes/microVM pool | managed queue + PostgreSQL | versioned object store | isolated verifier pool |
+| Cluster | GKE trusted + gVisor pools | Pub/Sub + Firestore | retained CMEK GCS | isolated verifier jobs |
 | Multi-region | region-local worker pools | globally routed jobs | replicated object store | pinned regional bundles |
 
 Capacity scales approximately with arrival rate multiplied by p95 episode
@@ -177,9 +177,11 @@ quotas and weighted fair scheduling before autoscaling.
 - SQLite coordinates workers on one shared host, not across regions.
 - Contracts are Python dataclasses rather than a network API or schema
   registry.
-- The file trajectory store is local and does not encrypt or sign manifests.
 - Human-review assignment and model-judge calibration are represented by
   routing semantics, not a user interface.
 
 These are replaceable adapters around stable task, episode, reward, and
-trajectory contracts; they are not hidden assumptions in the action loop.
+trajectory contracts; they are not hidden assumptions in the action loop. The
+GCP deployment in `docs/gcp-deployment.md` replaces local execution/storage
+with Pub/Sub, retained CMEK-encrypted GCS, Firestore, Workload Identity, and
+separate trusted and gVisor GKE pools.
