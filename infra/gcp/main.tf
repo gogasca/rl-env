@@ -13,8 +13,13 @@ locals {
     "storage.googleapis.com",
   ])
 
-  workload_pool = "${var.project_id}.svc.id.goog"
-  namespace     = "rl-env"
+  workload_pool        = "${var.project_id}.svc.id.goog"
+  namespace            = "rl-env"
+  pubsub_service_agent = "service-${data.google_project.platform.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+data "google_project" "platform" {
+  project_id = var.project_id
 }
 
 resource "google_project_service" "platform" {
@@ -161,7 +166,7 @@ resource "google_storage_bucket" "trajectories" {
       age = 365
     }
     action {
-      type = "SetStorageClass"
+      type          = "SetStorageClass"
       storage_class = "ARCHIVE"
     }
   }
@@ -189,18 +194,12 @@ resource "google_storage_bucket" "snapshots" {
   depends_on = [google_kms_crypto_key_iam_member.gcs]
 }
 
-resource "google_project_service_identity" "pubsub" {
-  provider = google
-  project  = var.project_id
-  service  = "pubsub.googleapis.com"
-
-  depends_on = [google_project_service.platform["pubsub.googleapis.com"]]
-}
-
 resource "google_kms_crypto_key_iam_member" "pubsub" {
   crypto_key_id = google_kms_crypto_key.data.id
   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
-  member        = "serviceAccount:${google_project_service_identity.pubsub.email}"
+  member        = "serviceAccount:${local.pubsub_service_agent}"
+
+  depends_on = [google_project_service.platform["pubsub.googleapis.com"]]
 }
 
 resource "google_pubsub_topic" "jobs" {
@@ -237,9 +236,9 @@ resource "google_pubsub_subscription" "jobs" {
   name  = "${var.name}-jobs"
   topic = google_pubsub_topic.jobs.id
 
-  ack_deadline_seconds       = 600
-  message_retention_duration = "604800s"
-  retain_acked_messages      = false
+  ack_deadline_seconds         = 600
+  message_retention_duration   = "604800s"
+  retain_acked_messages        = false
   enable_exactly_once_delivery = true
 
   expiration_policy {
@@ -265,13 +264,13 @@ resource "google_pubsub_subscription" "jobs" {
 resource "google_pubsub_topic_iam_member" "pubsub_dead_letter_publisher" {
   topic  = google_pubsub_topic.dead_letter.name
   role   = "roles/pubsub.publisher"
-  member = "serviceAccount:${google_project_service_identity.pubsub.email}"
+  member = "serviceAccount:${local.pubsub_service_agent}"
 }
 
 resource "google_project_iam_member" "pubsub_subscription_reader" {
   project = var.project_id
   role    = "roles/pubsub.subscriber"
-  member  = "serviceAccount:${google_project_service_identity.pubsub.email}"
+  member  = "serviceAccount:${local.pubsub_service_agent}"
 }
 
 resource "google_firestore_database" "platform" {
@@ -394,10 +393,10 @@ resource "google_container_cluster" "platform" {
 
   remove_default_node_pool = true
   initial_node_count       = 1
-  deletion_protection     = var.deletion_protection
+  deletion_protection      = var.deletion_protection
 
-  networking_mode  = "VPC_NATIVE"
-  datapath_provider = "ADVANCED_DATAPATH"
+  networking_mode       = "VPC_NATIVE"
+  datapath_provider     = "ADVANCED_DATAPATH"
   enable_shielded_nodes = true
 
   ip_allocation_policy {

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
-import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from rl_env.gcp import GCSTrajectoryStore, PubSubJobQueue
+from rl_env.gcp import GCSTrajectoryStore, PubSubJob, PubSubJobQueue
+from rl_env.worker import QueueWorker
 
 
 class FakeBlob:
@@ -148,6 +148,59 @@ class PubSubJobQueueTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "invalid"):
             self.queue.claim()
         self.assertEqual(self.subscriber.requests[-1][0], "ack")
+
+
+class QueueWorkerTests(unittest.TestCase):
+    def test_review_result_is_published_before_ack(self) -> None:
+        events = []
+
+        class Queue:
+            def complete(self, job):
+                events.append(("complete", job.id))
+
+            def fail(self, job):
+                events.append(("fail", job.id))
+
+            def heartbeat(self, job, *, seconds):
+                events.append(("heartbeat", job.id))
+
+        class ReviewPublisher:
+            def publish(self, event_type, payload):
+                events.append((event_type, payload["job_id"]))
+
+        worker = QueueWorker(
+            Queue(),
+            lambda payload: {"status": "needs_review", "score": payload["score"]},
+            review_publisher=ReviewPublisher(),
+        )
+        worker._process(PubSubJob("job-1", {"score": 0.5}, "ack", 1))
+        self.assertEqual(
+            events,
+            [
+                ("episode.needs_review", "job-1"),
+                ("complete", "job-1"),
+            ],
+        )
+
+    def test_handler_failure_nacks_job(self) -> None:
+        events = []
+
+        class Queue:
+            def complete(self, job):
+                events.append("complete")
+
+            def fail(self, job):
+                events.append("fail")
+
+            def heartbeat(self, job, *, seconds):
+                events.append("heartbeat")
+
+        def fail(_):
+            raise RuntimeError("handler failed")
+
+        worker = QueueWorker(Queue(), fail)
+        worker._process(PubSubJob("job-1", {}, "ack", 1))
+        self.assertEqual(events, ["fail"])
 
 
 if __name__ == "__main__":

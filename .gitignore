@@ -7,3 +7,6 @@ dist/
 build/
 *.egg-info/
 .runs/
+.terraform/
+*.tfstate
+*.tfstate.*
